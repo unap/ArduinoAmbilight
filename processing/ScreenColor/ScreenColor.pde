@@ -22,7 +22,7 @@ Serial port;
 Robot robby;
 Rectangle screenRect;
 
-int lapNo = 0;
+// sreenshot scaled size
 int imgWidth = 96;
 int imgHeight = 60;
 
@@ -36,8 +36,8 @@ DisposeHandler dh;
  *   SETUP
  */
 void setup() {
-  //FIXME: isn't run on exit when exported, don't know why
   // we need a dispose handler to shut off the lights on exit
+  //FIXME: isn't run on exit when exported, don't know why
   dh = new DisposeHandler(this);
   port = new Serial(this, Serial.list()[0],9600); //set baud rate
   size(240, 150);
@@ -45,7 +45,8 @@ void setup() {
     frame.setResizable(true);
   }
   running = true;
-  try { //standard Robot class error check
+  //standard Robot class error check
+  try {
     robby = new Robot();
   }
   catch (AWTException e){
@@ -58,7 +59,7 @@ void setup() {
   
   //Default screenshot bounds to fullscreen.
   Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();
-  screenRect = new Rectangle(0, 0, scrSize.width-5, scrSize.height-5); // i can't remember why i have the -5 but i ain't changing it
+  screenRect = new Rectangle(0, 0, scrSize.width-5, scrSize.height-5); // i can't remember why i have the -5 but i'm not changing it
   
   //Make window have a minimum height
   frame.addComponentListener(new ComponentAdapter() {
@@ -75,9 +76,9 @@ void setup() {
 }
 
 /*
- *   Calculates average color of area from image
+ *   Calculate average color of area from image
  */
-int[] getAvgColor(BufferedImage img, int startX, int startY, int w, int h) {
+int[] areaAvgColors(BufferedImage img, int startX, int startY, int w, int h) {
   int rgb[] = {0, 0, 0};
 
   // Read pixel colors
@@ -100,7 +101,7 @@ int[] getAvgColor(BufferedImage img, int startX, int startY, int w, int h) {
 /*
  *   Get average colors of side regions of screen
  */
-int[][] averageColors() {
+int[][] screenAvgColors() {
   int red = 0, blue = 0, green = 0;
   
   // Take screenshot and scale it
@@ -115,10 +116,10 @@ int[][] averageColors() {
   }
 
   // Get colors of all regions 
-  int[] topLeft = getAvgColor(image, 0, 0, imgWidth/2, imgHeight/3);
-  int[] topRight = getAvgColor(image, imgWidth/2, 0, imgWidth/2, imgHeight/3);
-  int[] left = getAvgColor(image, 0, imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
-  int[] right = getAvgColor(image, (imgWidth - imgWidth/4), imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
+  int[] topLeft = areaAvgColors(image, 0, 0, imgWidth/2, imgHeight/3);
+  int[] topRight = areaAvgColors(image, imgWidth/2, 0, imgWidth/2, imgHeight/3);
+  int[] left = areaAvgColors(image, 0, imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
+  int[] right = areaAvgColors(image, (imgWidth - imgWidth/4), imgHeight/3, imgWidth/4, (imgHeight - imgHeight/3));
 
   // Write colors into one array
   int[][] colors = new int[4][3];
@@ -138,51 +139,37 @@ int[][] averageColors() {
 void draw() {
   background(0, 0, 0);
     
-  if (running) {
-    int[][] clrs = averageColors();
+  int[][] clrs = screenAvgColors();
 
-    /*
-     * DRAWING THE RECTANGLES ON THE WINDOW
-     */
-    color tl = color(clrs[0][0], clrs[0][1], clrs[0][2]);
-    color tr = color(clrs[1][0], clrs[1][1], clrs[1][2]);
-    color l = color(clrs[2][0], clrs[2][1], clrs[2][2]);
-    color r = color(clrs[3][0], clrs[3][1], clrs[3][2]);
-  
-    // left and right
-    fill(l);
-    rect(0, height/3, width/4, (height - height/3));
-    fill(r);
-    rect((width-width/4), height/3, width/4, (height - height/3));
-  
-    // top left and top right
-    fill(tl);
-    rect(0,0,width/2, height/3);
-    fill(tr);
-    rect(width/2, 0, width/2, height/3);
-  
-    // Send colors to Arduino, loop to reduce flickering caused by time overhead from calculating avg colors
-    for (int z = 5; z >= 0; z--) {
-      port.write(0xff); //marker for sync
-      // all 12 values one after the other
-      for (int[] clr : clrs) {
-        for (int val : clr) {
-          port.write(val);
-          //print(val + " ");
-        }
+  // Draw the rectangles in the window
+  color tl = color(clrs[0][0], clrs[0][1], clrs[0][2]);
+  color tr = color(clrs[1][0], clrs[1][1], clrs[1][2]);
+  color l = color(clrs[2][0], clrs[2][1], clrs[2][2]);
+  color r = color(clrs[3][0], clrs[3][1], clrs[3][2]);
+
+  // left and right
+  fill(l);
+  rect(0, height/3, width/4, (height - height/3));
+  fill(r);
+  rect((width-width/4), height/3, width/4, (height - height/3));
+
+  // top left and top right
+  fill(tl);
+  rect(0,0,width/2, height/3);
+  fill(tr);
+  rect(width/2, 0, width/2, height/3);
+
+  // Send colors to Arduino, loop to reduce flickering caused by time overhead from calculating avg colors
+  for (int z = 5; z >= 0; z--) {
+    port.write(0xff); //marker for sync
+    // all 12 values one after the other
+    for (int[] clr : clrs) {
+      for (int val : clr) {
+        port.write(val);
+        //print(val + " ");
       }
     }
-    
   }
-  else  { // not running, send black and wait 2.5 sec
-    port.write(0xff);
-    for (int i = 0; i < 12; i++) {
-       port.write(0); 
-    }
-    delay(2500);
-  }
-  
-
 }
 
 /*
@@ -210,16 +197,36 @@ void keyPressed() {
     sizingFrame.setVisible(true);
     
   }
-  else if (key == ESC) {
+  else if (key == ESC) { // stop running on ESC
     key = 0;
-    if (running) running = false;
-    else running = true;
-  } 
+    if (running) {
+      // make window black
+      fill(0);
+      rect(0, 0, width, height);
+      
+      // add text
+      fill(255, 0, 0);
+      textSize(32);
+      textAlign(CENTER, CENTER);
+      text("OFF", width/2, height/2);
+      
+      // send black
+      port.write(0xff);
+      for (int i = 0; i < 12; i++) {
+         port.write(0); 
+      }
+      running = false;
+      noLoop();
+    }
+    else {
+      running = true;
+      loop();
+    }
+  }
 }
 
 /*
  * Shut off lights before exiting
- *
  */
 public class DisposeHandler {
    
