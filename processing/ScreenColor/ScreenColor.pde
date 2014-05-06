@@ -36,6 +36,7 @@ DisposeHandler dh;
  *   SETUP
  */
 void setup() {
+  noStroke();
   // we need a dispose handler to shut off the lights on exit
   //FIXME: isn't run on exit when exported, don't know why
   dh = new DisposeHandler(this);
@@ -170,6 +171,7 @@ void draw() {
       }
     }
   }
+  
 }
 
 /*
