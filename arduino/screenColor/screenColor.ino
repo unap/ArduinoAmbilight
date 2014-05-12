@@ -57,11 +57,13 @@ void loop()
         // Make color warmer by tuning down green and blue
         if ((i+2)%3 == 0)
         {
-          colors[i] = (int)((float)colors[i]*0.85);
+          colors[i] = (int)((float)colors[i]*(-0.15/255*colors[i]+1));
+          //colors[i] = (int)((float)colors[i]*(0.85));
         }
         else if ((i+1)%3 == 0)
         {
-          colors[i] = (int)((float)colors[i]*0.7);
+          colors[i] = (int)((float)colors[i]*(-0.3/255*colors[i]+1));
+          //colors[i] = (int)((float)colors[i]*(0.7));
         }
         
         val[i] = gamma[colors[i]]; // led's values according to gamma-table
