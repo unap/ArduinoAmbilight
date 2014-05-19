@@ -66,7 +66,9 @@ void loop()
           //colors[i] = (int)((float)colors[i]*(0.7));
         }
         
-        val[i] = gamma[colors[i]]; // led's values according to gamma-table
+        // trying to reduce flashing 
+        if (abs(gamma[colors[i]] - val[i]) > 1)
+          val[i] = gamma[colors[i]]; // led's values according to gamma-table
       }
     }
   }
